@@ -31,3 +31,31 @@ jobs:
         DB_CONNECTION: sqlite
         DB_DATABASE: database/database.sqlite
       run: vendor/bin/phpunit
+    
+  deploy: # fazer o deploy da aplicação
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: laravel-tests
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v1
+      - name: Download build assets
+        uses: actions/download-artifact@v1
+        with:
+          name: assets
+          path: public
+      - name: Setup PHP
+        uses: shivammathur/setup-php@15c43e89cdef867065b0213be354c2841860869e
+        with:
+          php-version: '8.0'
+          extension-csv: mbstring, bcmath
+      - name: Install SSH Key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+      - name: Composer install
+        run: composer install
+      - name: Deploy to Prod
+        env:
+          DOT_ENV: ${{ secrets.DOT_ENV_PRODUCTION }}
